@@ -6,6 +6,8 @@ variables:
     description: Environment name (uppercase for job names)
   env_path:
     description: Environment path (lowercase for repo paths)
+  catalog:
+    description: Databricks catalog name
   alert_emails:
     description: Email addresses for failure notifications
 
@@ -14,12 +16,14 @@ targets:
     variables:
       env_name: DEV
       env_path: dev
+      catalog: test_catalog
       alert_emails:
         - etruett@alas.com
   test:
     variables:
       env_name: TEST
       env_path: test
+      catalog: test_catalog
       alert_emails:
         - etruett@alas.com
 
@@ -36,17 +40,17 @@ resources:
       tasks:
         - task_key: CVENT_Raw
           run_job_task:
-            job_id: 126668734061523
+            job_key: DE_CVENT_Raw
         - task_key: CVENT_Bronze
           depends_on:
             - task_key: CVENT_Raw
           run_job_task:
-            job_id: 818579334405634
+            job_key: DE_CVENT_Bronze
         - task_key: XDW_Tables
           depends_on:
             - task_key: CVENT_Bronze
           run_job_task:
-            job_id: 1001073488568472
+            job_key: DE_CVENT_Gold
         - task_key: WRITE_TO_XDW
           depends_on:
             - task_key: XDW_Tables
@@ -61,15 +65,15 @@ resources:
         enabled: true
       parameters:
         - name: BASE_PATH
-          default: /Volumes/test_catalog/cvent/cvent_volume/
+          default: /Volumes/${var.catalog}/cvent/cvent_volume/
         - name: CATALOG
-          default: test_catalog
+          default: ${var.catalog}
         - name: CUSTOM_FILTER_STRING
           default: ""
         - name: END_DATE
           default: ""
         - name: EVENTS_TABLE
-          default: test_catalog.cvent.vw_recent_eventids
+          default: ${var.catalog}.cvent.vw_recent_eventids
         - name: SCHEMA
           default: cvent
         - name: START_DATE
@@ -107,9 +111,9 @@ resources:
         enabled: true
       parameters:
         - name: BASE_PATH
-          default: /Volumes/test_catalog/cvent/cvent_volume/
+          default: /Volumes/${var.catalog}/cvent/cvent_volume/
         - name: EVENTS_TABLE
-          default: test_catalog.cvent.vw_recent_eventids
+          default: ${var.catalog}.cvent.vw_recent_eventids
         - name: FILTER_STRING
           default: ""
         - name: CUSTOM_SAVE_PATH
@@ -145,9 +149,9 @@ resources:
         enabled: true
       parameters:
         - name: BASE_PATH
-          default: /Volumes/test_catalog/cvent/cvent_volume/
+          default: /Volumes/${var.catalog}/cvent/cvent_volume/
         - name: CATALOG
-          default: test_catalog
+          default: ${var.catalog}
         - name: SCHEMA
           default: cvent
         - name: OVERWRITE_EXISTING
@@ -197,7 +201,7 @@ resources:
         enabled: true
       parameters:
         - name: CATALOG
-          default: test_catalog
+          default: ${var.catalog}
         - name: SCHEMA
           default: cvent
         - name: START_DATE
