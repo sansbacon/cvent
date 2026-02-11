@@ -2,27 +2,31 @@ bundle:
   name: CVENT
 
 variables:
-  env:
-    description: Environment name
+  env_name:
+    description: Environment name (uppercase for job names)
+  env_path:
+    description: Environment path (lowercase for repo paths)
   alert_emails:
     description: Email addresses for failure notifications
 
 targets:
   dev:
     variables:
-      env: DEV
+      env_name: DEV
+      env_path: dev
       alert_emails:
         - etruett@alas.com
   test:
     variables:
-      env: TEST
+      env_name: TEST
+      env_path: test
       alert_emails:
         - etruett@alas.com
 
 resources:
   jobs:
     DE_CVENT:
-      name: DE-${var.env}-CVENT
+      name: DE-${var.env_name}-CVENT
       email_notifications:
         on_failure: ${var.alert_emails}
       schedule:
@@ -47,12 +51,12 @@ resources:
           depends_on:
             - task_key: XDW_Tables
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/WriteToXDW
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/WriteToXDW
             source: WORKSPACE
       git_source:
         git_url: https://dev.azure.com/ALASDIA/Data%20Analytics%20Projects/_git/databricks_engineering
         git_provider: azureDevOpsServices
-        git_branch: main-${var.env}
+        git_branch: main-${var.env_path}
       queue:
         enabled: true
       parameters:
@@ -73,7 +77,7 @@ resources:
       performance_target: PERFORMANCE_OPTIMIZED
 
     DE_CVENT_Raw:
-      name: DE-${var.env}-CVENT_Raw
+      name: DE-${var.env_name}-CVENT_Raw
       email_notifications:
         on_failure: ${var.alert_emails}
       tasks:
@@ -84,19 +88,19 @@ resources:
             task:
               task_key: Entity_API_Pull_iteration
               notebook_task:
-                notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Entity
+                notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/raw/CVENT_Raw_Entity
                 base_parameters:
                   ENTITY: "{{input}}"
                 source: WORKSPACE
               environment_key: Default
         - task_key: Registration_Paths_Raw
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Paths
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Paths
             source: WORKSPACE
           environment_key: Default
         - task_key: Registration_Types_Raw
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Types
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Types
             source: WORKSPACE
           environment_key: Default
       queue:
@@ -121,7 +125,7 @@ resources:
       performance_target: PERFORMANCE_OPTIMIZED
 
     DE_CVENT_Bronze:
-      name: DE-${var.env}-CVENT_Bronze
+      name: DE-${var.env_name}-CVENT_Bronze
       email_notifications:
         on_failure: ${var.alert_emails}
       tasks:
@@ -132,7 +136,7 @@ resources:
             task:
               task_key: Entity_Bronze_iteration
               notebook_task:
-                notebook_path: /Repos/${var.env}/databricks_engineering/cvent/bronze/CVENT_Bronze_Entity
+                notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/bronze/CVENT_Bronze_Entity
                 base_parameters:
                   ENTITY: "{{input}}"
                 source: WORKSPACE
@@ -155,38 +159,38 @@ resources:
       performance_target: PERFORMANCE_OPTIMIZED
 
     DE_CVENT_Gold:
-      name: DE-${var.env}-CVENT_Gold
+      name: DE-${var.env_name}-CVENT_Gold
       email_notifications:
         on_failure: ${var.alert_emails}
       tasks:
         - task_key: dimCventEvent
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimCventEvent_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/dimCventEvent_ing
             source: WORKSPACE
           environment_key: Default
         - task_key: dimCventPerson
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimCventPerson_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/dimCventPerson_ing
             source: WORKSPACE
           environment_key: Default
         - task_key: dimRegistrationMapping
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimRegistrationMapping_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/dimRegistrationMapping_ing
             source: WORKSPACE
           environment_key: Default
         - task_key: dimRegistrationPath
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimRegistrationPath_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/dimRegistrationPath_ing
             source: WORKSPACE
           environment_key: Default
         - task_key: factCventEventAttendee
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/factCventEventAttendee_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/factCventEventAttendee_ing
             source: WORKSPACE
           environment_key: Default
         - task_key: factCventSentEmail
           notebook_task:
-            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/factCventSentEmail_ing
+            notebook_path: /Repos/${var.env_path}/databricks_engineering/cvent/xdw_tables/factCventSentEmail_ing
             source: WORKSPACE
           environment_key: Default
       queue:
