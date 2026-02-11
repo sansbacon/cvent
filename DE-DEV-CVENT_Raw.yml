@@ -1,0 +1,47 @@
+resources:
+  jobs:
+    DE_DEV_CVENT_Raw:
+      name: DE-DEV-CVENT_Raw
+      tasks:
+        - task_key: Entity_API_Pull
+          for_each_task:
+            inputs: '["contacts", "attendees", "events", "emails", "event-questions"]'
+            concurrency: 5
+            task:
+              task_key: Entity_API_Pull_iteration
+              notebook_task:
+                notebook_path: /Repos/dev/databricks_engineering/cvent/raw/CVENT_Raw_Entity
+                base_parameters:
+                  ENTITY: "{{input}}"
+                source: WORKSPACE
+              environment_key: Default
+        - task_key: Registration_Paths_Raw
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Paths
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: Registration_Types_Raw
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Types
+            source: WORKSPACE
+          environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: EVENTS_TABLE
+          default: test_catalog.cvent.vw_recent_eventids
+        - name: FILTER_STRING
+          default: ""
+        - name: CUSTOM_SAVE_PATH
+          default: ""
+        - name: START_DATE
+          default: ""
+        - name: END_DATE
+          default: ""
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED

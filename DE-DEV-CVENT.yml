@@ -1,0 +1,53 @@
+resources:
+  jobs:
+    DE_DEV_CVENT:
+      name: DE-DEV-CVENT
+      email_notifications:
+        on_failure:
+          - etruett@alas.com
+      schedule:
+        quartz_cron_expression: 41 0 7 * * ?
+        timezone_id: America/Chicago
+        pause_status: PAUSED
+      tasks:
+        - task_key: CVENT_Raw
+          run_job_task:
+            job_id: 126668734061523
+        - task_key: CVENT_Bronze
+          depends_on:
+            - task_key: CVENT_Raw
+          run_job_task:
+            job_id: 818579334405634
+        - task_key: XDW_Tables
+          depends_on:
+            - task_key: CVENT_Bronze
+          run_job_task:
+            job_id: 1001073488568472
+        - task_key: WRITE_TO_XDW
+          depends_on:
+            - task_key: XDW_Tables
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/WriteToXDW
+            source: WORKSPACE
+      git_source:
+        git_url: https://dev.azure.com/ALASDIA/Data%20Analytics%20Projects/_git/databricks_engineering
+        git_provider: azureDevOpsServices
+        git_branch: main-dev
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: CATALOG
+          default: test_catalog
+        - name: CUSTOM_FILTER_STRING
+          default: ""
+        - name: END_DATE
+          default: ""
+        - name: EVENTS_TABLE
+          default: test_catalog.cvent.vw_recent_eventids
+        - name: SCHEMA
+          default: cvent
+        - name: START_DATE
+          default: ""
+      performance_target: PERFORMANCE_OPTIMIZED

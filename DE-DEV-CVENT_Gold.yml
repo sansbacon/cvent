@@ -1,0 +1,51 @@
+resources:
+  jobs:
+    DE_DEV_CVENT_Gold:
+      name: DE-DEV-CVENT_Gold
+      tasks:
+        - task_key: dimCventEvent
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/dimCventEvent_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimCventPerson
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/dimCventPerson_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimRegistrationMapping
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/dimRegistrationMapping_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimRegistrationPath
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/dimRegistrationPath_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: factCventEventAttendee
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/factCventEventAttendee_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: factCventSentEmail
+          notebook_task:
+            notebook_path: /Repos/dev/databricks_engineering/cvent/xdw_tables/factCventSentEmail_ing
+            source: WORKSPACE
+          environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: CATALOG
+          default: test_catalog
+        - name: SCHEMA
+          default: cvent
+        - name: START_DATE
+          default: ""
+        - name: END_DATE
+          default: ""
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED

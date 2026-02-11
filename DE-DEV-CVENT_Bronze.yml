@@ -1,0 +1,33 @@
+resources:
+  jobs:
+    DE_DEV_CVENT_Bronze:
+      name: DE-DEV-CVENT_Bronze
+      tasks:
+        - task_key: Entity_API_Pull
+          for_each_task:
+            inputs: '["contacts", "attendees", "events", "emails"]'
+            concurrency: 4
+            task:
+              task_key: Entity_Bronze_iteration
+              notebook_task:
+                notebook_path: /Repos/dev/databricks_engineering/cvent/bronze/CVENT_Bronze_Entity
+                base_parameters:
+                  ENTITY: "{{input}}"
+                source: WORKSPACE
+              environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: CATALOG
+          default: test_catalog
+        - name: SCHEMA
+          default: cvent
+        - name: OVERWRITE_EXISTING
+          default: No
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
