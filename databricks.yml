@@ -1,0 +1,207 @@
+bundle:
+  name: CVENT
+
+variables:
+  env:
+    description: Environment name
+  alert_emails:
+    description: Email addresses for failure notifications
+
+targets:
+  dev:
+    variables:
+      env: DEV
+      alert_emails:
+        - etruett@alas.com
+  test:
+    variables:
+      env: TEST
+      alert_emails:
+        - etruett@alas.com
+
+resources:
+  jobs:
+    DE_CVENT:
+      name: DE-${var.env}-CVENT
+      email_notifications:
+        on_failure: ${var.alert_emails}
+      schedule:
+        quartz_cron_expression: 41 0 7 * * ?
+        timezone_id: America/Chicago
+        pause_status: PAUSED
+      tasks:
+        - task_key: CVENT_Raw
+          run_job_task:
+            job_id: 126668734061523
+        - task_key: CVENT_Bronze
+          depends_on:
+            - task_key: CVENT_Raw
+          run_job_task:
+            job_id: 818579334405634
+        - task_key: XDW_Tables
+          depends_on:
+            - task_key: CVENT_Bronze
+          run_job_task:
+            job_id: 1001073488568472
+        - task_key: WRITE_TO_XDW
+          depends_on:
+            - task_key: XDW_Tables
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/WriteToXDW
+            source: WORKSPACE
+      git_source:
+        git_url: https://dev.azure.com/ALASDIA/Data%20Analytics%20Projects/_git/databricks_engineering
+        git_provider: azureDevOpsServices
+        git_branch: main-${var.env}
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: CATALOG
+          default: test_catalog
+        - name: CUSTOM_FILTER_STRING
+          default: ""
+        - name: END_DATE
+          default: ""
+        - name: EVENTS_TABLE
+          default: test_catalog.cvent.vw_recent_eventids
+        - name: SCHEMA
+          default: cvent
+        - name: START_DATE
+          default: ""
+      performance_target: PERFORMANCE_OPTIMIZED
+
+    DE_CVENT_Raw:
+      name: DE-${var.env}-CVENT_Raw
+      email_notifications:
+        on_failure: ${var.alert_emails}
+      tasks:
+        - task_key: Entity_API_Pull
+          for_each_task:
+            inputs: '["contacts", "attendees", "events", "emails", "event-questions"]'
+            concurrency: 5
+            task:
+              task_key: Entity_API_Pull_iteration
+              notebook_task:
+                notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Entity
+                base_parameters:
+                  ENTITY: "{{input}}"
+                source: WORKSPACE
+              environment_key: Default
+        - task_key: Registration_Paths_Raw
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Paths
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: Registration_Types_Raw
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/raw/CVENT_Raw_Registration_Types
+            source: WORKSPACE
+          environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: EVENTS_TABLE
+          default: test_catalog.cvent.vw_recent_eventids
+        - name: FILTER_STRING
+          default: ""
+        - name: CUSTOM_SAVE_PATH
+          default: ""
+        - name: START_DATE
+          default: ""
+        - name: END_DATE
+          default: ""
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
+
+    DE_CVENT_Bronze:
+      name: DE-${var.env}-CVENT_Bronze
+      email_notifications:
+        on_failure: ${var.alert_emails}
+      tasks:
+        - task_key: Entity_API_Pull
+          for_each_task:
+            inputs: '["contacts", "attendees", "events", "emails"]'
+            concurrency: 4
+            task:
+              task_key: Entity_Bronze_iteration
+              notebook_task:
+                notebook_path: /Repos/${var.env}/databricks_engineering/cvent/bronze/CVENT_Bronze_Entity
+                base_parameters:
+                  ENTITY: "{{input}}"
+                source: WORKSPACE
+              environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: BASE_PATH
+          default: /Volumes/test_catalog/cvent/cvent_volume/
+        - name: CATALOG
+          default: test_catalog
+        - name: SCHEMA
+          default: cvent
+        - name: OVERWRITE_EXISTING
+          default: "No"
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
+
+    DE_CVENT_Gold:
+      name: DE-${var.env}-CVENT_Gold
+      email_notifications:
+        on_failure: ${var.alert_emails}
+      tasks:
+        - task_key: dimCventEvent
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimCventEvent_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimCventPerson
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimCventPerson_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimRegistrationMapping
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimRegistrationMapping_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: dimRegistrationPath
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/dimRegistrationPath_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: factCventEventAttendee
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/factCventEventAttendee_ing
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: factCventSentEmail
+          notebook_task:
+            notebook_path: /Repos/${var.env}/databricks_engineering/cvent/xdw_tables/factCventSentEmail_ing
+            source: WORKSPACE
+          environment_key: Default
+      queue:
+        enabled: true
+      parameters:
+        - name: CATALOG
+          default: test_catalog
+        - name: SCHEMA
+          default: cvent
+        - name: START_DATE
+          default: ""
+        - name: END_DATE
+          default: ""
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "4"
+      performance_target: PERFORMANCE_OPTIMIZED
